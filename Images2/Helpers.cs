@@ -16,6 +16,16 @@ namespace Images2
                 new Size(Math.Abs(oldLocation.X - newLocation.X), Math.Abs(oldLocation.Y - newLocation.Y)));
         }
 
+        public static byte[][] BuildRectangle(Point oldLocation, Point newLocation, bool isByte)
+        {
+            byte[][] res = new byte[4][];
+            res[0] = Crypto.IntToByteArray(oldLocation.X > newLocation.X ? newLocation.X : oldLocation.X);
+            res[1] = Crypto.IntToByteArray(oldLocation.Y > newLocation.Y ? newLocation.Y : oldLocation.Y);
+            res[2] = Crypto.IntToByteArray(Math.Abs(oldLocation.X - newLocation.X));
+            res[3] = Crypto.IntToByteArray(Math.Abs(oldLocation.Y - newLocation.Y));
+            return res;
+        }
+
         public static string FindSmallImage()
         {
             string findString = ".\\subImage.png.jpg";
@@ -75,13 +85,13 @@ namespace Images2
             int oldG = oldColor.G;
             int oldB = oldColor.B;
 
-            byte insertByteR = Convert.ToByte(Convert.ToByte(insert >> 6) & Convert.ToByte(0x3));
-            byte insertByteG = Convert.ToByte(Convert.ToByte(insert >> 3) & Convert.ToByte(0x7));
-            byte insertByteB = Convert.ToByte(Convert.ToByte(insert) & Convert.ToByte(0x7));
+            byte insertByteR = Convert.ToByte((insert >> 6) & (0x3));
+            byte insertByteG = Convert.ToByte((insert >> 3) & (0x7));
+            byte insertByteB = Convert.ToByte((insert) & (0x7));
 
-            int newR = (insertByteR) ^ (oldR & 0x3) | (oldR);
-            int newG = (insertByteG) ^ (oldG & 0x7) | (oldG);
-            int newB = (insertByteB) ^ (oldB & 0x7) | (oldB);
+            int newR = ((insertByteR) ^ (oldR & 0x3) | (oldR)) & (248 | insertByteR);
+            int newG = ((insertByteG) ^ (oldG & 0x7) | (oldG)) & (248 | insertByteG);
+            int newB = ((insertByteB) ^ (oldB & 0x7) | (oldB)) & (248 | insertByteB);
 
             Color result = Color.FromArgb(newR, newG, newB);
 
@@ -130,6 +140,25 @@ namespace Images2
                 outS += "0";
             }
             return outS;
+        }
+
+        internal static int ExtractRectangle(Bitmap input, ref int x, ref int y)
+        {
+            Color a = input.GetPixel(x, y);
+            y++;
+            Color b = input.GetPixel(x, y);
+            y++;
+            Color c = input.GetPixel(x, y);
+            y++;
+            Color d = input.GetPixel(x, y);
+            y++;
+            byte[] inp = new byte[4];
+            inp[0] = Convert.ToByte(((a.R & 0x3)<<6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
+            inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
+            inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
+            int result = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            return result;
         }
     }
 }

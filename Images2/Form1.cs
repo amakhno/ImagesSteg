@@ -62,45 +62,64 @@ namespace Images2
             byte[] encodedSubImageString = File.ReadAllBytes(@".\subImage.png.out.jpg");
 
             byte[] byteLenght = Crypto.IntToByteArray(encodedSubImageString.Length);
-            
+
+            byte[][] rect = Helpers.BuildRectangle(oldLocation, newLocation, true);
+
             if (!Helpers.CheckSizes(oldLocation, newLocation, pictureBox1.Image.Width, pictureBox1.Image.Height, byteLenght.Length, encodedSubImageString.Length))
             {
                 MessageBox.Show("Слишком большая область");
                 return;
             }
 
+            int rectIndexX = 0;
+            int rectIndexY = 0;
             Color oldColor;
             Color newColor = Color.Black;
             int byteLenghtIndex = 0;
             int i = 0;
-            for (int j = 0; j<input.Width; j++)
+            for (int k = 0; k < input.Width; k++)
             {
-                for (int k = 0; k < input.Height; k++)
+                for (int j = 0; j < input.Height; j++)
                 {
                     if (i == encodedSubImageString.Length)
                     {
                         break;
                     }
-                    if (Helpers.isIndexInRectangle(j, k, oldLocation, newLocation))
+                    if (Helpers.isIndexInRectangle(k, j, oldLocation, newLocation))
                     {
                         k += Math.Abs(oldLocation.X - newLocation.X);
                         continue;
                     }
 
-                    if (byteLenghtIndex < 4)
+                    if (rectIndexX < 4 && rectIndexY < 4)
                     {
-                        oldColor = input.GetPixel(j, k);
+                        oldColor = input.GetPixel(k, j);
+                        newColor = Helpers.GetNewColor(oldColor, rect[rectIndexY][rectIndexX]);
+                        input.SetPixel(k, j, newColor);
+                        if (rectIndexX == 3)
+                        {
+                            rectIndexY++;
+                            rectIndexX = 0;
+                            continue;
+                        }
+                        rectIndexX++;
+                        continue;
+                    }
+                    else if (byteLenghtIndex < 4)
+                    {
+                        oldColor = input.GetPixel(k, j);
                         newColor = Helpers.GetNewColor(oldColor, byteLenght[byteLenghtIndex]);
-                        input.SetPixel(j, k, newColor);
+                        input.SetPixel(k, j, newColor);
                         byteLenghtIndex++;
+                        continue;
                     }
                     else
                     {
-                        oldColor = input.GetPixel(j, k);
+                        oldColor = input.GetPixel(k, j);
                         newColor = Helpers.GetNewColor(oldColor, encodedSubImageString[i]);
-                        newColor = Color.Black;
-                        input.SetPixel(j, k, newColor);
+                        input.SetPixel(k, j, newColor);
                         i++;
+                        continue;
                     }                    
                 }
                 if (i == encodedSubImageString.Length)
@@ -108,7 +127,26 @@ namespace Images2
                     break;
                 }
             }
-            pb.FillRectangle(Brushes.Black, oldLocation.X, oldLocation.Y, newLocation.X - oldLocation.X, newLocation.Y - oldLocation.Y);
+            using (Graphics g = Graphics.FromImage(input))
+            {
+                g.FillRectangle(Brushes.Black, oldLocation.X, oldLocation.Y, newLocation.X - oldLocation.X, newLocation.Y - oldLocation.Y);
+                pictureBox1.Refresh();
+            }            
+            pb.Save();
+            pictureBox1.Image.Save("out.png");
+
+            //////////////Extract
+            for (int x = 0; x<input.Height; x++)
+            {
+                for (int y = 0; y < input.Height; y++)
+                {
+                    Helpers.ExtractRectangle(input, ref x, ref y);
+                }
+            }
+
+
+
+
             //pictureBox1.Image.Save("output.png");
             Crypto.DecryptData(@".\subImage.png.out.jpg", @".\subImage.png.after.jpg", key, iV);            
         }
