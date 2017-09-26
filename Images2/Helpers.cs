@@ -21,8 +21,8 @@ namespace Images2
             byte[][] res = new byte[4][];
             res[0] = Crypto.IntToByteArray(oldLocation.X > newLocation.X ? newLocation.X : oldLocation.X);
             res[1] = Crypto.IntToByteArray(oldLocation.Y > newLocation.Y ? newLocation.Y : oldLocation.Y);
-            res[2] = Crypto.IntToByteArray(Math.Abs(oldLocation.X - newLocation.X));
-            res[3] = Crypto.IntToByteArray(Math.Abs(oldLocation.Y - newLocation.Y));
+            res[2] = Crypto.IntToByteArray(oldLocation.X > newLocation.X ? oldLocation.X : newLocation.X);
+            res[3] = Crypto.IntToByteArray(oldLocation.Y > newLocation.Y ? oldLocation.Y : newLocation.Y);
             return res;
         }
 
@@ -142,7 +142,7 @@ namespace Images2
             return outS;
         }
 
-        internal static int ExtractRectangle(Bitmap input, ref int x, ref int y)
+        internal static Point[] ExtractRectangle(Bitmap input, ref int x, ref int y)
         {
             Color a = input.GetPixel(x, y);
             y++;
@@ -157,8 +157,77 @@ namespace Images2
             inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
             inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
             inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
-            int result = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            int oldX = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            a = input.GetPixel(x, y);
+            y++;
+            b = input.GetPixel(x, y);
+            y++;
+            c = input.GetPixel(x, y);
+            y++;
+            d = input.GetPixel(x, y);
+            y++;
+            inp[0] = Convert.ToByte(((a.R & 0x3) << 6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
+            inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
+            inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
+            int oldY = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            a = input.GetPixel(x, y);
+            y++;
+            b = input.GetPixel(x, y);
+            y++;
+            c = input.GetPixel(x, y);
+            y++;
+            d = input.GetPixel(x, y);
+            y++;
+            inp[0] = Convert.ToByte(((a.R & 0x3) << 6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
+            inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
+            inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
+            int newX = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            a = input.GetPixel(x, y);
+            y++;
+            b = input.GetPixel(x, y);
+            y++;
+            c = input.GetPixel(x, y);
+            y++;
+            d = input.GetPixel(x, y);
+            y++;
+            inp[0] = Convert.ToByte(((a.R & 0x3) << 6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
+            inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
+            inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
+            int newY = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            Point[] result = new Point[2];
+            result[0] = new Point(oldX, oldY);
+            result[1] = new Point(newX, newY);
             return result;
+        }
+
+        internal static int ExtractSize(Bitmap input, ref int x, ref int y)
+        {
+            Color a = input.GetPixel(x, y);
+            y++;
+            Color b = input.GetPixel(x, y);
+            y++;
+            Color c = input.GetPixel(x, y);
+            y++;
+            Color d = input.GetPixel(x, y);
+            y++;
+            byte[] inp = new byte[4];
+            inp[0] = Convert.ToByte(((a.R & 0x3) << 6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            inp[1] = Convert.ToByte(((b.R & 0x3) << 6) | ((b.G & 0x7) << 3) | (b.B & 0x7));
+            inp[2] = Convert.ToByte(((c.R & 0x3) << 6) | ((c.G & 0x7) << 3) | (c.B & 0x7));
+            inp[3] = Convert.ToByte(((d.R & 0x3) << 6) | ((d.G & 0x7) << 3) | (d.B & 0x7));
+            int oldX = (inp[0] << 24) | (inp[1] << 16) | (inp[2] << 8) | (inp[3]);
+            return oldX;
+        }
+
+        internal static byte ExtractByte(Bitmap input, int x, int y)
+        {
+            Color a = input.GetPixel(x, y);
+            byte inp;
+            inp = Convert.ToByte(((a.R & 0x3) << 6) | ((a.G & 0x7) << 3) | (a.B & 0x7));
+            return inp;
         }
     }
 }

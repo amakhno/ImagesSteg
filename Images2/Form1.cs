@@ -48,15 +48,12 @@ namespace Images2
             subImage.Save(@".\subImage.png");
             subImage.Dispose();
 
-
-
             Compressor.Compress(@".\subImage.png");
             string pathToCompressImage = Helpers.FindSmallImage();
 
             Bitmap encoded = new Bitmap(pathToCompressImage);
             byte[] key = Crypto.LongToByteArray(int.MaxValue);
             byte[] iV = Crypto.LongToByteArray(40);
-
             Crypto.EncryptData(pathToCompressImage, @".\subImage.png.out.jpg", key, iV);
 
             byte[] encodedSubImageString = File.ReadAllBytes(@".\subImage.png.out.jpg");
@@ -136,19 +133,50 @@ namespace Images2
             pictureBox1.Image.Save("out.png");
 
             //////////////Extract
-            for (int x = 0; x<input.Height; x++)
+            Point uploadedOldPos = new Point(0, 0);
+            Point uploadedNewPos = new Point(0, 0);
+            int xOld = 0, yOld = 0;
+            var points = Helpers.ExtractRectangle(input, ref xOld, ref yOld);
+            uploadedOldPos = points[0];
+            uploadedNewPos = points[1];
+            int extractSize = Helpers.ExtractSize(input, ref xOld, ref yOld);
+
+            byte[] extractedImage = new byte[extractSize];
+            int extractedIndex = 0;
+            for (int x = xOld; x<input.Width; x++)
             {
-                for (int y = 0; y < input.Height; y++)
+                for (int y = yOld; y < input.Height; y++)
                 {
-                    Helpers.ExtractRectangle(input, ref x, ref y);
+                    if (extractedIndex >= extractSize)
+                    {
+                        break;
+                    }
+
+                    extractedImage[extractedIndex] = Helpers.ExtractByte(input, x, y);
+                    if (extractedImage[extractedIndex] != encodedSubImageString[extractedIndex])
+                    {
+                        ;
+                    }
+                    extractedIndex++;                    
                 }
+                if (extractedIndex >= extractSize)
+                {
+                    break;
+                }
+                yOld = 0;
             }
 
+            File.WriteAllBytes("izzz.coded", extractedImage);
+            Crypto.DecryptData(@".\izzz.coded", @".\outSmallDecoded.png", key, iV);
 
-
-
-            //pictureBox1.Image.Save("output.png");
-            Crypto.DecryptData(@".\subImage.png.out.jpg", @".\subImage.png.after.jpg", key, iV);            
+            using (Graphics gr = Graphics.FromImage(input))
+            {
+                using (Bitmap smallImage = new Bitmap(@".\outSmallDecoded.png"))
+                {
+                    gr.DrawImage(smallImage, uploadedOldPos);
+                }                    
+            }
+            pictureBox1.Refresh();     
         }
 
 
