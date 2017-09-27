@@ -25,7 +25,21 @@ namespace Images2
         public Form1()
         {
             InitializeComponent();
-            input = new Bitmap(@".\image.png");
+            var dialogResult = openFileDialog1.ShowDialog();
+            if (dialogResult != DialogResult.OK)
+            {
+                System.Environment.Exit(0);
+                return;
+            }
+            try
+            {
+                input = new Bitmap(openFileDialog1.FileName);
+                pictureBox1.Refresh();
+            }
+            catch
+            {
+                MessageBox.Show("Выбрано плохое изображение!");
+            }
             pictureBox1.Image = input;
             inputFormat = input.PixelFormat;
             pb = pictureBox1.CreateGraphics();
@@ -35,9 +49,13 @@ namespace Images2
         private void button1_Click(object sender, EventArgs e)
         {
             Bitmap subImage = ((Bitmap)pictureBox1.Image);
-            Rectangle rectangle = Helpers.BuildRectangle(oldLocation, newLocation); 
+            Rectangle rectangle = Helpers.BuildRectangle(oldLocation, newLocation);
             try
             {
+                if (oldLocation == new Point(0, 0))
+                {
+                    throw new Exception();
+                }
                 subImage = subImage.Clone(rectangle, inputFormat);
             }
             catch
@@ -47,136 +65,14 @@ namespace Images2
             }
             subImage.Save(@".\subImage.png");
             subImage.Dispose();
-
-            Compressor.Compress(@".\subImage.png");
-            string pathToCompressImage = Helpers.FindSmallImage();
-
-            Bitmap encoded = new Bitmap(pathToCompressImage);
-            byte[] key = Crypto.LongToByteArray(int.MaxValue);
-            byte[] iV = Crypto.LongToByteArray(40);
-            Crypto.EncryptData(pathToCompressImage, @".\subImage.png.out.jpg", key, iV);
-
-            byte[] encodedSubImageString = File.ReadAllBytes(@".\subImage.png.out.jpg");
-
-            byte[] byteLenght = Crypto.IntToByteArray(encodedSubImageString.Length);
-
-            byte[][] rect = Helpers.BuildRectangle(oldLocation, newLocation, true);
-
-            if (!Helpers.CheckSizes(oldLocation, newLocation, pictureBox1.Image.Width, pictureBox1.Image.Height, byteLenght.Length, encodedSubImageString.Length))
+            try
             {
-                MessageBox.Show("Слишком большая область");
-                return;
+                Crypto.Insert(oldLocation, newLocation, pictureBox1, input).Save("Hidden.png");
             }
-
-            int rectIndexX = 0;
-            int rectIndexY = 0;
-            Color oldColor;
-            Color newColor = Color.Black;
-            int byteLenghtIndex = 0;
-            int i = 0;
-            for (int k = 0; k < input.Width; k++)
+            catch (Exception exc)
             {
-                for (int j = 0; j < input.Height; j++)
-                {
-                    if (i == encodedSubImageString.Length)
-                    {
-                        break;
-                    }
-                    if (Helpers.isIndexInRectangle(k, j, oldLocation, newLocation))
-                    {
-                        k += Math.Abs(oldLocation.X - newLocation.X);
-                        continue;
-                    }
-
-                    if (rectIndexX < 4 && rectIndexY < 4)
-                    {
-                        oldColor = input.GetPixel(k, j);
-                        newColor = Helpers.GetNewColor(oldColor, rect[rectIndexY][rectIndexX]);
-                        input.SetPixel(k, j, newColor);
-                        if (rectIndexX == 3)
-                        {
-                            rectIndexY++;
-                            rectIndexX = 0;
-                            continue;
-                        }
-                        rectIndexX++;
-                        continue;
-                    }
-                    else if (byteLenghtIndex < 4)
-                    {
-                        oldColor = input.GetPixel(k, j);
-                        newColor = Helpers.GetNewColor(oldColor, byteLenght[byteLenghtIndex]);
-                        input.SetPixel(k, j, newColor);
-                        byteLenghtIndex++;
-                        continue;
-                    }
-                    else
-                    {
-                        oldColor = input.GetPixel(k, j);
-                        newColor = Helpers.GetNewColor(oldColor, encodedSubImageString[i]);
-                        input.SetPixel(k, j, newColor);
-                        i++;
-                        continue;
-                    }                    
-                }
-                if (i == encodedSubImageString.Length)
-                {
-                    break;
-                }
+                MessageBox.Show(exc.Message);
             }
-            using (Graphics g = Graphics.FromImage(input))
-            {
-                g.FillRectangle(Brushes.Black, oldLocation.X, oldLocation.Y, newLocation.X - oldLocation.X, newLocation.Y - oldLocation.Y);
-                pictureBox1.Refresh();
-            }            
-            pb.Save();
-            pictureBox1.Image.Save("out.png");
-
-            //////////////Extract
-            Point uploadedOldPos = new Point(0, 0);
-            Point uploadedNewPos = new Point(0, 0);
-            int xOld = 0, yOld = 0;
-            var points = Helpers.ExtractRectangle(input, ref xOld, ref yOld);
-            uploadedOldPos = points[0];
-            uploadedNewPos = points[1];
-            int extractSize = Helpers.ExtractSize(input, ref xOld, ref yOld);
-
-            byte[] extractedImage = new byte[extractSize];
-            int extractedIndex = 0;
-            for (int x = xOld; x<input.Width; x++)
-            {
-                for (int y = yOld; y < input.Height; y++)
-                {
-                    if (extractedIndex >= extractSize)
-                    {
-                        break;
-                    }
-
-                    extractedImage[extractedIndex] = Helpers.ExtractByte(input, x, y);
-                    if (extractedImage[extractedIndex] != encodedSubImageString[extractedIndex])
-                    {
-                        ;
-                    }
-                    extractedIndex++;                    
-                }
-                if (extractedIndex >= extractSize)
-                {
-                    break;
-                }
-                yOld = 0;
-            }
-
-            File.WriteAllBytes("izzz.coded", extractedImage);
-            Crypto.DecryptData(@".\izzz.coded", @".\outSmallDecoded.png", key, iV);
-
-            using (Graphics gr = Graphics.FromImage(input))
-            {
-                using (Bitmap smallImage = new Bitmap(@".\outSmallDecoded.png"))
-                {
-                    gr.DrawImage(smallImage, uploadedOldPos);
-                }                    
-            }
-            pictureBox1.Refresh();     
         }
 
 
@@ -202,9 +98,32 @@ namespace Images2
             isDraw = true;
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void button2_Click(object sender, EventArgs e)
         {
-            pictureBox1.Image.Save("output.png");
+            var dialogResult = openFileDialog1.ShowDialog();
+            if (dialogResult != DialogResult.OK)
+            {
+                return;
+            }
+            try
+            {
+                input = new Bitmap(openFileDialog1.FileName);
+                pictureBox1.Refresh();
+            }
+            catch
+            {
+                MessageBox.Show("Выбрано плохое изображение!");
+                return;
+            }
+            try
+            {
+                Crypto.Extract(input, pictureBox1).Save("Extracted.png");
+            }
+            catch (Exception exc)
+            {
+                MessageBox.Show(exc.Message);
+            }
+
         }
     }
 }
